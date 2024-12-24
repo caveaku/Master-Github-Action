@@ -52,3 +52,11 @@ jobs:
 
     - name: Trivy image scan 
       run: trivy image --format table -o image.html adjijaiswa1/taskmaster:latest
+
+    - name: Kubernetes Deployment
+      uses: tale/kubectl-action@v1
+      with:
+         base64-kube-config: ${{ secrets.KUBE_CONFIG }}
+    - run: |
+           kubectl apply -f deployment-service.yaml
+  
