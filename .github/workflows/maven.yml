@@ -51,3 +51,4 @@ jobs:
          docker build -t adjijaiswa1/taskmaster:latest .
 
     - name: Trivy image scan 
+      run: trivy image --format table -o image.html adjijaiswa1/taskmaster:latest
