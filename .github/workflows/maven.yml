@@ -29,7 +29,7 @@ jobs:
     - name: Trivy fs scan 
       run: trivy fs --format table -o fs.report .
 
-    - name: SonarQube Scan
+    - name: SonarQube Scan1
       uses: sonarsource/sonarqube-scan-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
