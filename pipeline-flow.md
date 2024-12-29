@@ -2,15 +2,15 @@ pipeline {
     agent any
 
     tools {
-        maven "maven3"
+        maven 'maven3'
     }
 
     environment {
-        SCANNER_HOME = tool "sonar-scanner"
+        SCANNER_HOME = tool 'sonar-scanner'
     }
 
     stages {
-        stage('Git Checkout') {
+        stage('Git checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/caveaku/Master-Github-Action.git'
             }
@@ -20,7 +20,7 @@ pipeline {
                 sh "mvn compile"
             }
         }
-        stage('Tests') {
+        stage('Test') {
             steps {
                 sh "mvn test"
             }
@@ -33,23 +33,19 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar') {
-                    sh '''
-                        $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectKey=bankapp \
-                        -Dsonar.projectName=bankapp \
-                        -Dsonar.java.binaries=target
-                    '''
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=bankapp -Dsonar.projectName=bankapp \
+                         -Dsonar.java.binaries=target'''
                 }
             }
         }
-        stage('Build And Publish To Nexus') {
+        stage('Build & Publish To Nexus') {
             steps {
-                withMaven(globalMavenSettingsConfig: 'devopsshack-settings', maven: 'maven3') {
+                withMaven(globalMavenSettingsConfig: 'devopsshack-settings', jdk: '', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
                     sh "mvn deploy"
                 }
             }
         }
-        stage('Build And Tag Docker Image') {
+        stage('Build & Tag Docker Image') {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker-cred') {
@@ -58,12 +54,12 @@ pipeline {
                 }
             }
         }
-        stage('Trivy Scan Docker Image') {
+        stage('Trivy image Scan') {
             steps {
-                sh "trivy image --format table -o image.html caveaku/bankapp:latest"
+                sh "trivy image --format table -o image.html cave/bankapp:latest"
             }
         }
-        stage('Push And Tag Docker Image') {
+        stage('Push Docker Image') {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker-cred') {
@@ -72,12 +68,20 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to K8') {
+        stage('Deploy To K8') {
             steps {
-                script {
-                   withKubeConfig(caCertificate: '', clusterName: 'devopsshack-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://1E3C784699B7E42CE79EC97A01A4755F.gr7.us-east-1.eks.amazonaws.com') {
-                    }
+                withKubeConfig(caCertificate: '', clusterName: 'devopsshack-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://01A78AD7034C792843D102F5E5F10773.gr7.us-east-1.eks.amazonaws.com') {
+                    sh "kubectl apply -f ds.yml -n webapps"
+                    sleep 30
+                }
+            }
+        }
+        stage('Verify Deployment') {
+            steps {
+                withKubeConfig(caCertificate: '', clusterName: 'devopsshack-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://01A78AD7034C792843D102F5E5F10773.gr7.us-east-1.eks.amazonaws.com') {
+                    sh "kubectl get svc -n webapps"
                 }
             }
         }
     }
+}
